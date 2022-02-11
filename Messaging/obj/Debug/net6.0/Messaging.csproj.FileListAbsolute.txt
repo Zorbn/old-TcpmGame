@@ -1,0 +1,12 @@
+C:\Users\Nic\RiderProjects\TcpmGame\Messaging\bin\Debug\net6.0\Messaging.deps.json
+C:\Users\Nic\RiderProjects\TcpmGame\Messaging\bin\Debug\net6.0\Messaging.dll
+C:\Users\Nic\RiderProjects\TcpmGame\Messaging\bin\Debug\net6.0\ref\Messaging.dll
+C:\Users\Nic\RiderProjects\TcpmGame\Messaging\bin\Debug\net6.0\Messaging.pdb
+C:\Users\Nic\RiderProjects\TcpmGame\Messaging\obj\Debug\net6.0\Messaging.csproj.AssemblyReference.cache
+C:\Users\Nic\RiderProjects\TcpmGame\Messaging\obj\Debug\net6.0\Messaging.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Nic\RiderProjects\TcpmGame\Messaging\obj\Debug\net6.0\Messaging.AssemblyInfoInputs.cache
+C:\Users\Nic\RiderProjects\TcpmGame\Messaging\obj\Debug\net6.0\Messaging.AssemblyInfo.cs
+C:\Users\Nic\RiderProjects\TcpmGame\Messaging\obj\Debug\net6.0\Messaging.csproj.CoreCompileInputs.cache
+C:\Users\Nic\RiderProjects\TcpmGame\Messaging\obj\Debug\net6.0\Messaging.dll
+C:\Users\Nic\RiderProjects\TcpmGame\Messaging\obj\Debug\net6.0\ref\Messaging.dll
+C:\Users\Nic\RiderProjects\TcpmGame\Messaging\obj\Debug\net6.0\Messaging.pdb
