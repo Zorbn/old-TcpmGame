@@ -32,6 +32,20 @@ public class Inventory
         return droppedItem;
     }
 
+    public static void UpdateAllItemsLocal(int localId, float frameTime)
+    {
+        Inventory inventory = Player.Players[localId].Inventory;
+        
+        for (int index = 0; index < inventory.Items.Count; index++)
+        {
+            Item item = inventory.Items[index];
+            if (!item.CanUpdate(frameTime)) continue;
+
+            item.Update(localId);
+            Client.SendMessage(Message.MessageType.UpdateItem, new UpdateItemData(localId, index));
+        }
+    }
+
     public static void TryDropItem(int localId, int index)
     {
         Player localPlayer = Player.Players[localId];
@@ -60,5 +74,21 @@ public class Inventory
         
         TryDropItem(playerDropItemData.Id, playerDropItemData.Index);
         Server.SendMessageToAll(Message.MessageType.PlayerDropItem, playerDropItemData);
+    }
+
+    public static void HandleUpdateItem(Data data)
+    {
+        if (data is not UpdateItemData updateItemData) return;
+        
+        Player.Players[updateItemData.PlayerId].Inventory.Items[updateItemData.Index].Update(updateItemData.PlayerId);
+    }
+
+    public static void ServerHandleUpdateItem(Data data)
+    {
+        if (data is not UpdateItemData updateItemData) return;
+        
+        Player.Players[updateItemData.PlayerId].Inventory.Items[updateItemData.Index].Update(updateItemData.PlayerId);
+        
+        Server.SendMessageToAllExcluding(updateItemData.PlayerId, Message.MessageType.UpdateItem, data);
     }
 }

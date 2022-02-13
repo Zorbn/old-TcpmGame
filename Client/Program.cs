@@ -3,6 +3,7 @@ using Messaging;
 using Raylib_cs;
 using Shared;
 using Shared.Items;
+using Shared.Projectiles;
 
 namespace Client;
 
@@ -10,8 +11,8 @@ internal static class Program
 {
     private const int InitialScreenWidth = 800;
     private const int InitialScreenHeight = 450;
-    
-    private static readonly Dictionary<Message.MessageType, MessageStream.MessageHandler>? MessageHandlers = new()
+
+    private static readonly Dictionary<Message.MessageType, MessageStream.MessageHandler> MessageHandlers = new()
     {
         { Message.MessageType.ExampleNotification, ExampleNotification.HandleNotification },
         { Message.MessageType.PlayerJoin, HandlePlayerJoin },
@@ -21,18 +22,19 @@ internal static class Program
         { Message.MessageType.EnemySpawn, Enemy.HandleEnemySpawn },
         { Message.MessageType.EnemyMove, Enemy.HandleEnemyMove },
         { Message.MessageType.PlayerDropItem, Inventory.HandlePlayerDropItem },
-        { Message.MessageType.UpdateDroppedItems, DroppedItem.HandleUpdateDroppedItems }
+        { Message.MessageType.UpdateDroppedItems, DroppedItem.HandleUpdateDroppedItems },
+        { Message.MessageType.UpdateItem, Inventory.HandleUpdateItem }
     };
 
     private static Camera2D Camera;
     
     private static List<Sprite> DrawList = new();
-    private static Shader SpriteShader;
+    private static readonly Quadtree Quadtree = new(0, new Collider(0, 0, 640, 480));
+    
     private static Texture2D PlayerTexture;
-    private static int SpriteShaderFlashAmountLoc;
-    private static int TextureSizeLoc;
     private static TextureAtlas? ItemAtlas;
-
+    private static TextureAtlas? ProjectileAtlas;
+    
     public static void Main()
     {
         Messaging.Client.StartClient("127.0.0.1", MessageHandlers, 60, OnTick, OnDisconnect, OnConnect,
@@ -52,11 +54,11 @@ internal static class Program
         
         PlayerTexture = Raylib.LoadTexture("Resources/Player.png");
         
-        LoadSpriteShader();
-        SpriteShaderFlashAmountLoc = Raylib.GetShaderLocation(SpriteShader, "flashAmount");
-        TextureSizeLoc = Raylib.GetShaderLocation(SpriteShader, "textureSize");
+        SpriteShader.LoadSpriteShader();
+        
         
         ItemAtlas = new TextureAtlas(Raylib.LoadTexture("Resources/ItemAtlas.png"), 16, 16);
+        ProjectileAtlas = new TextureAtlas(Raylib.LoadTexture("Resources/ProjectileAtlas.png"), 16, 16);
 
         while (!Raylib.WindowShouldClose())
         {
@@ -68,9 +70,13 @@ internal static class Program
 
     public static void Update()
     {
+        if (ItemAtlas == null) throw new Exception("Item atlas isn't loaded, can't update game state!");
+        if (ProjectileAtlas == null) throw new Exception("Projectile atlas isn't loaded, can't update game state!");
+        
         int localId = Messaging.Client.GetId();
         float frameTime = Raylib.GetFrameTime();
         DrawList.Clear();
+        Quadtree.Clear();
 
         int screenWidth = Raylib.GetScreenWidth();
         int screenHeight = Raylib.GetScreenHeight();
@@ -78,12 +84,14 @@ internal static class Program
         if (localId != -1)
         {
             Player.UpdateAllRemote(localId, frameTime);
+            Inventory.UpdateAllItemsLocal(localId, frameTime);
             InventoryGfx.UpdateInventory(localId, screenWidth, screenHeight, Camera.zoom);
         }
         
         Enemy.UpdateAllRemote(frameTime);
-
-        foreach ((int id, Player player) in Player.Players)
+        
+        // ToArray is used on these loops in case the original list is modified by a message while the loop is in progress
+        foreach ((int id, Player player) in Player.Players.ToArray())
         {
             if (localId != -1 && id == localId)
             {
@@ -101,38 +109,53 @@ internal static class Program
                     moveX /= moveMag;
                     moveY /= moveMag;
                 }
-
+                
                 player.UpdateLocal(moveX * player.Speed, moveY * player.Speed, frameTime);
                 
                 Player localPlayer = Player.Players[localId];
+
                 Camera.target = new Vector2(
-                    (int)(localPlayer.VisualX - player.Size / 2f) + player.Size / 2f - screenWidth / Camera.zoom / 2f,
-                    (int)(localPlayer.VisualY - player.Size / 2f) + player.Size / 2f - screenHeight / Camera.zoom / 2f);
+                    (int)localPlayer.VisualX -
+                    screenWidth / Camera.zoom / 2f,
+                    (int)localPlayer.VisualY -
+                    screenHeight / Camera.zoom / 2f);
 
                 Camera.zoom = (float)screenHeight / InitialScreenHeight;
             }
 
             DrawList.Add(new Sprite(PlayerTexture, new Rectangle(0f, 0f, 16f, 16f), new Rectangle(
-                    (int)(player.VisualX - player.Size / 2f),
-                    (int)(player.VisualY - player.Size / 2f), player.Size, player.Size), player.VisualY,
-                player.FlashAmount));
+                    (int)player.VisualX,
+                    (int)player.VisualY, player.Size, player.Size), player.VisualY,
+                0f, player.FlashAmount));
         }
 
-        foreach ((int _, Enemy enemy) in Enemy.Enemies)
+        foreach ((int _, Enemy enemy) in Enemy.Enemies.ToArray())
         {
             DrawList.Add(new Sprite(PlayerTexture, new Rectangle(0f, 0f, 16f, 16f), new Rectangle(
-                (int)(enemy.VisualX - enemy.Size / 2f),
-                (int)(enemy.VisualY - enemy.Size / 2f),
-                enemy.Size, enemy.Size), enemy.VisualY, enemy.FlashAmount));
+                (int)enemy.VisualX,
+                (int)enemy.VisualY,
+                enemy.Size, enemy.Size), enemy.VisualY, 0f, enemy.FlashAmount));
+            
+            Quadtree.Insert(new Collider(enemy.X, enemy.Y, enemy.Size,
+                enemy.Size));
         }
 
-        foreach (DroppedItem droppedItem in DroppedItem.DroppedItems)
+        foreach (DroppedItem droppedItem in DroppedItem.DroppedItems.ToArray())
         {
-            DrawList.Add(new Sprite(ItemAtlas!.Texture, ItemAtlas.GetTextureRect(droppedItem.Item.TextureIndex),
-                new Rectangle(droppedItem.X - DroppedItem.Size / 2f,
-                    droppedItem.Y - DroppedItem.Size / 2f,
-                    DroppedItem.Size, DroppedItem.Size), droppedItem.Y, 0f));
+            DrawList.Add(new Sprite(ItemAtlas.Texture, ItemAtlas.GetTextureRect(droppedItem.Item.TextureIndex),
+                new Rectangle(droppedItem.X,
+                    droppedItem.Y,
+                    DroppedItem.Size, DroppedItem.Size), droppedItem.Y));
         }
+
+        foreach (Projectile projectile in Projectile.Projectiles.ToArray())
+        {
+            DrawList.Add(new Sprite(ProjectileAtlas.Texture, ProjectileAtlas.GetTextureRect(projectile.TextureIndex),
+                new Rectangle(projectile.X + projectile.OffsetX, projectile.Y + projectile.OffsetY, Projectile.Size,
+                    Projectile.Size), projectile.Y, projectile.Rotation));
+        }
+        
+        Projectile.UpdateAll(frameTime, Quadtree);
 
         Raylib.BeginDrawing();
         Raylib.ClearBackground(Color.BEIGE);
@@ -144,15 +167,11 @@ internal static class Program
         
         foreach (Sprite sprite in DrawList)
         {
-            Raylib.SetShaderValue(SpriteShader, SpriteShaderFlashAmountLoc, sprite.FlashAmount,
-                ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-            Raylib.SetShaderValue(SpriteShader, TextureSizeLoc,
-                new float[] { sprite.Texture.width, sprite.Texture.height },
-                ShaderUniformDataType.SHADER_UNIFORM_VEC2);
-            
-            Raylib.BeginShaderMode(SpriteShader);
+            SpriteShader.BeginSpriteShaderMode(sprite.Texture.width, sprite.Texture.height, sprite.FlashAmount);
 
-            Raylib.DrawTexturePro(sprite.Texture, sprite.Source, sprite.Destination, Vector2.One, 0f, Color.WHITE);
+            Raylib.DrawTexturePro(sprite.Texture, sprite.Source, sprite.Destination,
+                new Vector2(sprite.Destination.width / 2f, sprite.Destination.height / 2f), sprite.Rotation,
+                Color.WHITE);
             
             Raylib.EndShaderMode();
         }
@@ -164,6 +183,8 @@ internal static class Program
             InventoryGfx.DrawInventory(Player.Players[localId].Inventory, ItemAtlas, screenWidth,
                 screenHeight, Camera.zoom);
         }
+        
+        Raylib.DrawFPS(10, 10);
 
         Raylib.EndDrawing();
     }
@@ -176,20 +197,6 @@ internal static class Program
 
         Messaging.Client.SendMessage(Message.MessageType.PlayerMove,
             new PlayerMoveData(localPlayer.Id, localPlayer.X, localPlayer.Y));
-    }
-
-    private static void LoadSpriteShader()
-    {
-        SpriteShader = Raylib.LoadShader(null, "Resources/SpriteShader.frag");
-
-        float outlineSize = 1f;
-        float[] outlineColor = { 0f, 0f, 0f, 1f };
-
-        int outlineSizeLoc = Raylib.GetShaderLocation(SpriteShader, "outlineSize");
-        int outlineColorLoc = Raylib.GetShaderLocation(SpriteShader, "outlineColor");
-
-        Raylib.SetShaderValue(SpriteShader, outlineSizeLoc, outlineSize, ShaderUniformDataType.SHADER_UNIFORM_FLOAT);
-        Raylib.SetShaderValue(SpriteShader, outlineColorLoc, outlineColor, ShaderUniformDataType.SHADER_UNIFORM_VEC4);
     }
 
     public static void OnDisconnect(int id)

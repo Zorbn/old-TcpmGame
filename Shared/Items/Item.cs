@@ -10,16 +10,34 @@ public class Item
     
     public int TextureIndex { get; }
     public ItemType Type { get; }
+    public float CooldownTime { get; }
+    
+    private float cooldownTimer;
 
-    protected Item(int textureIndex, ItemType type)
+    protected Item(int textureIndex, ItemType type, float cooldownTime)
     {
         TextureIndex = textureIndex;
         Type = type;
+        CooldownTime = cooldownTime;
+        cooldownTimer = CooldownTime;
     }
 
-    public void Update(float frameTime)
+    public virtual void Update(int playerId)
     {
         
+    }
+
+    public bool CanUpdate(float frameTime)
+    {
+        cooldownTimer -= frameTime;
+
+        if (cooldownTimer <= 0f)
+        {
+            cooldownTimer = CooldownTime;
+            return true;
+        }
+
+        return false;
     }
     
     public static List<ItemType> GetItemTypes(List<Item> items)

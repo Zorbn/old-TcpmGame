@@ -1,6 +1,7 @@
 ﻿using Messaging;
 using Shared;
 using Shared.Items;
+using Shared.Projectiles;
 
 namespace Server;
 
@@ -10,7 +11,8 @@ internal static class Program
     {
         { Message.MessageType.ExampleNotification, ExampleNotification.HandleNotification },
         { Message.MessageType.PlayerMove, Player.ServerHandlePlayerMove },
-        { Message.MessageType.PlayerDropItem, Inventory.ServerHandlePlayerDropItem }
+        { Message.MessageType.PlayerDropItem, Inventory.ServerHandlePlayerDropItem },
+        { Message.MessageType.UpdateItem, Inventory.ServerHandleUpdateItem }
     };
 
     private static readonly Random Rng = new();
@@ -23,6 +25,8 @@ internal static class Program
     
     private static void OnTick()
     {
+        float tickTime = 1f / Messaging.Server.TickRate;        
+        
         if (Enemy.Enemies.Count < 3)
         {
             Enemy.ServerAddEnemy(Enemy.NewEnemy(Enemy.EnemyType.Default, Rng.Next(100, 300), Rng.Next(100, 300), 10));
@@ -34,11 +38,13 @@ internal static class Program
         {
             Quadtree.Insert(new Collider(enemy.X, enemy.Y, enemy.Size, enemy.Size));
         }
+        
+        Projectile.UpdateAll(tickTime, Quadtree);
 
         List<Collider> returnColliders = new();
         foreach ((int id, Enemy enemy) in Enemy.Enemies)
         {
-            enemy.ChaseNearestPlayer(1f / Messaging.Server.TickRate, Quadtree, returnColliders);
+            enemy.ChaseNearestPlayer(tickTime, Quadtree, returnColliders);
 
             Messaging.Server.SendMessageToAll(Message.MessageType.EnemyMove, new EnemyMoveData(id, enemy.X, enemy.Y));
         }

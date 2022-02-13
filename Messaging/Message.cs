@@ -159,6 +159,19 @@ public class UpdateDroppedItemsData : Data
         DroppedItemYs = droppedItemYs;
     }
 }
+
+[Serializable]
+public class UpdateItemData : Data
+{
+    [JsonInclude] public int PlayerId;
+    [JsonInclude] public int Index;
+
+    public UpdateItemData(int playerId, int index)
+    {
+        PlayerId = playerId;
+        Index = index;
+    }
+}
     
 public class Message
 {
@@ -173,7 +186,8 @@ public class Message
         EnemyMove,
         PlayerDamage,
         PlayerDropItem,
-        UpdateDroppedItems
+        UpdateDroppedItems,
+        UpdateItem
     }
     
     public static Type ToDataType(MessageType messageType) => messageType switch
@@ -188,6 +202,7 @@ public class Message
         MessageType.PlayerDamage => typeof(PlayerDamageData),
         MessageType.PlayerDropItem => typeof(PlayerDropItemData),
         MessageType.UpdateDroppedItems => typeof(UpdateDroppedItemsData),
+        MessageType.UpdateItem => typeof(UpdateItemData),
         _ => throw new ArgumentOutOfRangeException($"No data type corresponds to {messageType}!")
     };
 

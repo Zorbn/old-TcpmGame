@@ -17,26 +17,30 @@ public class Enemy : SyncedEntity
     public int Damage;
     public float Speed;
     public int Size;
+    public int Health;
+    public int MaxHealth;
     public const float DefaultSpeed = 100f;
 
     private static float AttackDelay = 0.5f;
     private float attackTimer;
 
-    public static Enemy NewEnemy(EnemyType type, float x, float y, int damage, float speed = DefaultSpeed, int size = 32)
+    public static Enemy NewEnemy(EnemyType type, float x, float y, int damage, int health = 100, int maxHealth = 100, float speed = DefaultSpeed, int size = 32)
     {
         return type switch
         {
-            EnemyType.Default => new Enemy(x, y, damage, speed, size),
+            EnemyType.Default => new Enemy(x, y, damage, health, maxHealth, speed, size),
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
 
     }
     
-    private Enemy(float x, float y, int damage, float speed = DefaultSpeed, int size = 20) : base(x, y)
+    private Enemy(float x, float y, int damage, int health = 100, int maxHealth = 100, float speed = DefaultSpeed, int size = 20) : base(x, y)
     {
         Type = EnemyType.Default;
         Speed = speed;
         Size = size;
+        MaxHealth = maxHealth;
+        Health = health;
         Damage = damage;
     }
 

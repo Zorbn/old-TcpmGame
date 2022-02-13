@@ -2,6 +2,8 @@
 
 public class SyncedEntity
 {
+    public static float FlashSpeed = 1f;
+    
     public float X, Y;
     public float VisualX, VisualY;
     public float FlashAmount;
@@ -40,24 +42,13 @@ public class SyncedEntity
 
     private void UpdateFx(float frameTime)
     {
-        FlashAmount -= frameTime;
+        FlashAmount -= frameTime * FlashSpeed;
         if (FlashAmount < 0f) FlashAmount = 0f;
     }
 
     private void UpdateDirection(float moveX, float moveY)
     {
-        if (moveY > moveX)
-        {
-            if (moveY > 0)
-            {
-                Direction = Direction.Down;
-            }
-            else if (moveY < 0)
-            {
-                Direction = Direction.Up;
-            }
-        }
-        else
+        if (MathF.Abs(moveX) > MathF.Abs(moveY))
         {
             if (moveX > 0)
             {
@@ -67,6 +58,17 @@ public class SyncedEntity
             {
                 Direction = Direction.Left;
             }
+        }
+        else
+        {
+            if (moveY > 0)
+            {
+                Direction = Direction.Down;
+            }
+            else if (moveY < 0)
+            {
+                Direction = Direction.Up;
+            }   
         }
     }
 }

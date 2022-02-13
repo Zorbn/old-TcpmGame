@@ -22,7 +22,7 @@ public static class InventoryGfx
         }
     }
     
-    public static void DrawInventory(Inventory inventory, TextureAtlas? atlas, int screenWidth, int screenHeight, float zoom)
+    public static void DrawInventory(Inventory inventory, TextureAtlas atlas, int screenWidth, int screenHeight, float zoom)
     {
         int itemCount = inventory.Items.Count;
         SlotRects slotRects = GetSlotRects(screenWidth, screenHeight, zoom);
@@ -34,9 +34,13 @@ public static class InventoryGfx
 
             if (i < itemCount)
             {
-                Raylib.DrawTexturePro(atlas!.Texture, atlas.GetTextureRect(inventory.Items[i].TextureIndex),
+                SpriteShader.BeginSpriteShaderMode(atlas.Texture.width, atlas.Texture.height, 0f);
+                
+                Raylib.DrawTexturePro(atlas.Texture, atlas.GetTextureRect(inventory.Items[i].TextureIndex),
                     slotRects.InnerSlotRects[i],
                     Vector2.Zero, 0f, Color.WHITE);
+                
+                Raylib.EndShaderMode();
             }
         }
     }

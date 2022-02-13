@@ -24,7 +24,7 @@ public class Player : SyncedEntity
         Size = size;
         MaxHealth = maxHealth;
         Health = health;
-        Inventory = new Inventory();
+        Inventory = new  Inventory();
 
         if (itemTypes == null)
         {
