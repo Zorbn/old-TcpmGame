@@ -5,8 +5,8 @@ namespace Shared.Projectiles;
 
 public class DaggerProjectile : Projectile
 {
-    public DaggerProjectile(float x, float y, Vector2 direction, float rotation) : 
-        base(0, ProjectileType.Dagger, x, y, direction, 400f, rotation, 10)
+    public DaggerProjectile(int originClientId, float x, float y, Vector2 direction, float rotation) : 
+        base(originClientId, 0, ProjectileType.Dagger, x, y, direction, 400f, rotation, 10, 1f)
     {
     }
 
@@ -17,7 +17,8 @@ public class DaggerProjectile : Projectile
             enemy.TakeDamage(Damage);
             Server.SendMessageToAll(Message.MessageType.EnemyDamage, new EnemyDamageData(enemy.Id, Damage));
         }
-                
+        
+        enemy.DamageFx();
         Destroy();
     }
 }

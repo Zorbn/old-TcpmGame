@@ -24,7 +24,9 @@ internal static class Program
         { Message.MessageType.PlayerDropItem, Inventory.HandlePlayerDropItem },
         { Message.MessageType.UpdateDroppedItems, DroppedItem.HandleUpdateDroppedItems },
         { Message.MessageType.UpdateItem, Inventory.HandleUpdateItem },
-        { Message.MessageType.EnemyDamage, Enemy.HandleEnemyDamage }
+        { Message.MessageType.EnemyDamage, Enemy.HandleEnemyDamage },
+        { Message.MessageType.PlayerUpdateDirection, Player.HandlePlayerUpdateDirection },
+        { Message.MessageType.EnemyUpdateDirection, Enemy.HandleEnemyUpdateDirection }
     };
 
     private static Camera2D Camera;
@@ -198,7 +200,7 @@ internal static class Program
         Player localPlayer = Player.Players[localId];
 
         Messaging.Client.SendMessage(Message.MessageType.PlayerMove,
-            new PlayerMoveData(localPlayer.Id, localPlayer.X, localPlayer.Y));
+            new PlayerMoveData(localPlayer.ClientId, localPlayer.X, localPlayer.Y));
     }
 
     public static void OnDisconnect(int id)
@@ -220,8 +222,8 @@ internal static class Program
     {
         if (data is not PlayerJoinData playerJoinData) return;
 
-        Player.Players.Add(playerJoinData.Id,
-            new Player(playerJoinData.Id, playerJoinData.X, playerJoinData.Y, playerJoinData.Health,
+        Player.Players.Add(playerJoinData.ClientId,
+            new Player(playerJoinData.ClientId, playerJoinData.X, playerJoinData.Y, playerJoinData.Health,
                 playerJoinData.MaxHealth, playerJoinData.Speed, playerJoinData.Size,
                 playerJoinData.ItemTypes.Cast<Item.ItemType>().ToList()));
     }
@@ -229,8 +231,8 @@ internal static class Program
     private static void HandlePlayerDisconnect(Data data)
     {
         if (data is not PlayerDisconnectData playerDisconnectData) return;
-        if (!Player.Players.ContainsKey(playerDisconnectData.Id)) return;
+        if (!Player.Players.ContainsKey(playerDisconnectData.ClientId)) return;
         
-        Player.Players[playerDisconnectData.Id].Destroy();
+        Player.Players[playerDisconnectData.ClientId].Destroy();
     }
 }

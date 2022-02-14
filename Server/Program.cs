@@ -12,14 +12,13 @@ internal static class Program
         { Message.MessageType.ExampleNotification, ExampleNotification.HandleNotification },
         { Message.MessageType.PlayerMove, Player.ServerHandlePlayerMove },
         { Message.MessageType.PlayerDropItem, Inventory.ServerHandlePlayerDropItem },
-        { Message.MessageType.UpdateItem, Inventory.ServerHandleUpdateItem }
+        { Message.MessageType.UpdateItem, Inventory.ServerHandleUpdateItem },
+        { Message.MessageType.PlayerUpdateDirection, Player.ServerHandlePlayerUpdateDirection }
     };
 
     private static readonly Random Rng = new();
     private static readonly Quadtree Quadtree = new(0, new Collider(0, 0, 640, 480, null));
-
-    private static bool spawnedEnemies;
-
+    
     public static void Main()
     {
         Messaging.Server.StartServer("127.0.0.1", MessageHandlers, 60, OnTick, OnDisconnect, OnClientConnect);
@@ -31,21 +30,11 @@ internal static class Program
 
         Player.UpdateAllRemote(-1, tickTime);
         
-        /*
         if (Enemy.Enemies.Count < 3)
         {
             Enemy.ServerAddEnemy(Enemy.NewEnemy(Enemy.EnemyType.Default, Rng.Next(100, 300), Rng.Next(100, 300), 10));
         }
-        */
 
-        if (!spawnedEnemies)
-        {
-            spawnedEnemies = true;
-            Enemy.ServerAddEnemy(Enemy.NewEnemy(Enemy.EnemyType.Default, Rng.Next(100, 300), Rng.Next(100, 300), 10));
-            Enemy.ServerAddEnemy(Enemy.NewEnemy(Enemy.EnemyType.Default, Rng.Next(100, 300), Rng.Next(100, 300), 10));
-            Enemy.ServerAddEnemy(Enemy.NewEnemy(Enemy.EnemyType.Default, Rng.Next(100, 300), Rng.Next(100, 300), 10));
-        }
-        
         Quadtree.Clear();
 
         foreach ((int _, Enemy enemy) in Enemy.Enemies)

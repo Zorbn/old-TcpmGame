@@ -2,9 +2,6 @@
 
 namespace Messaging;
 
-// TODO: Make these use constructors, so that every field must be filled
-// Make each field into a get only property
-
 [Serializable]
 public class Data {}
 
@@ -33,7 +30,7 @@ public class ExampleNotificationData : Data
 [Serializable]
 public class PlayerJoinData : Data
 {
-    [JsonInclude] public int Id { get; }
+    [JsonInclude] public int ClientId { get; }
     [JsonInclude] public float X { get; }
     [JsonInclude] public float Y { get; }
     [JsonInclude] public int Health { get; }
@@ -42,9 +39,9 @@ public class PlayerJoinData : Data
     [JsonInclude] public int Size { get; }
     [JsonInclude] public List<int> ItemTypes { get; }
 
-    public PlayerJoinData(int id, float x, float y, int health, int maxHealth, float speed, int size, List<int> itemTypes)
+    public PlayerJoinData(int clientId, float x, float y, int health, int maxHealth, float speed, int size, List<int> itemTypes)
     {
-        Id = id;
+        ClientId = clientId;
         X = x;
         Y = y;
         Health = health;
@@ -58,24 +55,24 @@ public class PlayerJoinData : Data
 [Serializable]
 public class PlayerDisconnectData : Data
 {
-    [JsonInclude] public int Id { get; }
+    [JsonInclude] public int ClientId { get; }
 
-    public PlayerDisconnectData(int id)
+    public PlayerDisconnectData(int clientId)
     {
-        Id = id;
+        ClientId = clientId;
     }
 }
 
 [Serializable]
 public class PlayerMoveData : Data
 {
-    [JsonInclude] public int Id { get; }
+    [JsonInclude] public int ClientId { get; }
     [JsonInclude] public float X { get; }
     [JsonInclude] public float Y { get; }
 
-    public PlayerMoveData(int id, float x, float y)
+    public PlayerMoveData(int clientId, float x, float y)
     {
-        Id = id;
+        ClientId = clientId;
         X = x;
         Y = y;
     }
@@ -126,12 +123,12 @@ public class EnemyMoveData : Data
 [Serializable]
 public class PlayerDamageData : Data
 {
-    [JsonInclude] public int Id { get; }
+    [JsonInclude] public int ClientId { get; }
     [JsonInclude] public int Damage { get; }
 
-    public PlayerDamageData(int id, int damage)
+    public PlayerDamageData(int clientId, int damage)
     {
-        Id = id;
+        ClientId = clientId;
         Damage = damage;
     }
 }
@@ -152,12 +149,12 @@ public class EnemyDamageData : Data
 [Serializable]
 public class PlayerDropItemData : Data
 {
-    [JsonInclude] public int Id { get; }
+    [JsonInclude] public int ClientId { get; }
     [JsonInclude] public int Index { get; }
 
-    public PlayerDropItemData(int id, int index)
+    public PlayerDropItemData(int clientId, int index)
     {
-        Id = id;
+        ClientId = clientId;
         Index = index;
     }
 }
@@ -180,13 +177,39 @@ public class UpdateDroppedItemsData : Data
 [Serializable]
 public class UpdateItemData : Data
 {
-    [JsonInclude] public int PlayerId { get; }
+    [JsonInclude] public int PlayerClientId { get; }
     [JsonInclude] public int Index { get; }
 
-    public UpdateItemData(int playerId, int index)
+    public UpdateItemData(int playerClientId, int index)
     {
-        PlayerId = playerId;
+        PlayerClientId = playerClientId;
         Index = index;
+    }
+}
+
+[Serializable]
+public class PlayerUpdateDirectionData : Data
+{
+    [JsonInclude] public int ClientId { get; }
+    [JsonInclude] public int Direction { get; }
+
+    public PlayerUpdateDirectionData(int clientId, int direction)
+    {
+        ClientId = clientId;
+        Direction = direction;
+    }
+}
+
+[Serializable]
+public class EnemyUpdateDirectionData : Data
+{
+    [JsonInclude] public int Id { get; }
+    [JsonInclude] public int Direction { get; }
+
+    public EnemyUpdateDirectionData(int id, int direction)
+    {
+        Id = id;
+        Direction = direction;
     }
 }
 
@@ -205,7 +228,9 @@ public class Message
         PlayerDropItem,
         UpdateDroppedItems,
         UpdateItem,
-        EnemyDamage
+        EnemyDamage,
+        PlayerUpdateDirection,
+        EnemyUpdateDirection
     }
     
     public static Type ToDataType(MessageType messageType) => messageType switch
@@ -222,6 +247,8 @@ public class Message
         MessageType.UpdateDroppedItems => typeof(UpdateDroppedItemsData),
         MessageType.UpdateItem => typeof(UpdateItemData),
         MessageType.EnemyDamage => typeof(EnemyDamageData),
+        MessageType.PlayerUpdateDirection => typeof(PlayerUpdateDirectionData),
+        MessageType.EnemyUpdateDirection => typeof(EnemyUpdateDirectionData),
         _ => throw new ArgumentOutOfRangeException($"No data type corresponds to {messageType}!")
     };
 

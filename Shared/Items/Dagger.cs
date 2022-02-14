@@ -20,7 +20,7 @@ public class Dagger : Item
             _ => throw new ArgumentOutOfRangeException()
         };
 
-        Projectile.NewProjectile(Projectile.ProjectileType.Dagger, owner.X, owner.Y,
+        Projectile.NewProjectile(playerId, Projectile.ProjectileType.Dagger, owner.X, owner.Y,
             DirectionUtils.ToVector(owner.Direction), rotation);
     }
 }

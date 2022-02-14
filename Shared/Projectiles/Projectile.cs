@@ -16,6 +16,7 @@ public class Projectile
         Shield
     }
 
+    public int OriginClientId { get; }
     public int TextureIndex { get; }
     public ProjectileType Type { get; }
     public Vector2 Direction { get;  }
@@ -27,11 +28,15 @@ public class Projectile
     public float Speed { get; }
     public float Rotation { get; }
     public int Damage { get; }
+    public float Lifetime { get; }
+    public float Age { get; private set; }
 
     protected List<Collider> ReturnColliders;
-    
-    protected Projectile(int textureIndex, ProjectileType type, float x, float y, Vector2 direction, float speed, float rotation, int damage)
+
+    protected Projectile(int originClientId, int textureIndex, ProjectileType type, float x, float y, Vector2 direction,
+        float speed, float rotation, int damage, float lifetime)
     {
+        OriginClientId = originClientId;
         TextureIndex = textureIndex;
         Type = type;
         X = x;
@@ -40,6 +45,8 @@ public class Projectile
         Speed = speed;
         Rotation = rotation;
         Damage = damage;
+        Lifetime = lifetime;
+        Age = 0f;
         
         ReturnColliders = new List<Collider>();
 
@@ -49,6 +56,14 @@ public class Projectile
 
     public virtual void Update(float frameTime, Quadtree quadtree, bool isServer)
     {
+        Age += frameTime;
+
+        if (Age > Lifetime)
+        {
+            Destroy();
+            return;
+        }
+        
         X += Direction.X * Speed * frameTime;
         Y += Direction.Y * Speed * frameTime;
         
@@ -85,14 +100,15 @@ public class Projectile
         }
     }
 
-    public static Projectile NewProjectile(ProjectileType type, float x, float y, Vector2 direction, float rotation)
+    public static Projectile NewProjectile(int originClientId, ProjectileType type, float x, float y, Vector2 direction, float rotation)
     {
         Vector2 normalizedDirection = direction / direction.Length();
-        
+
         Projectile newProjectile = type switch
         {
-            ProjectileType.Dagger => new DaggerProjectile(x, y, normalizedDirection, rotation),
-            ProjectileType.Shield => new Projectile(1, type, x, y, normalizedDirection, 0f, rotation, 0),
+            ProjectileType.Dagger => new DaggerProjectile(originClientId, x, y, normalizedDirection, rotation),
+            ProjectileType.Shield => new Projectile(originClientId, 1, type, x, y, normalizedDirection, 0f, rotation, 0,
+                3f),
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
 

@@ -20,4 +20,34 @@ public static class DirectionUtils
         Direction.Right => new Vector2(1f, 0f),
         _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null)
     };
+    
+    public static Direction GetDirection(float moveX, float moveY, Direction initialDirection = Direction.Down)
+    {
+        Direction direction = initialDirection;
+        
+        if (MathF.Abs(moveX) > MathF.Abs(moveY))
+        {
+            if (moveX > 0)
+            {
+                direction = Direction.Right;
+            }
+            else if (moveX < 0)
+            {
+                direction = Direction.Left;
+            }
+        }
+        else
+        {
+            if (moveY > 0)
+            {
+                direction = Direction.Down;
+            }
+            else if (moveY < 0)
+            {
+                direction = Direction.Up;
+            }   
+        }
+
+        return direction;
+    }
 }

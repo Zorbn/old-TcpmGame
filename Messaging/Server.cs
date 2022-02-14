@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using System.Net.Sockets;
 
 namespace Messaging;
@@ -35,8 +36,22 @@ public static class Server
         TcpListener.Start();
         TcpListener.BeginAcceptTcpClient(TcpConnectCallback, null);
 
-        Tick();
-        
+        Task.Run(() =>
+        {
+            Stopwatch tickWatch = new();
+            tickWatch.Start();
+
+            for (;;)
+            {
+                if (tickWatch.ElapsedMilliseconds > TickRate)
+                {
+                    tickWatch.Restart();
+                    Tick();
+                }
+            }
+            // ReSharper disable once FunctionNeverReturns
+        });
+
         if (!integrated)
         {
             SpinWait.SpinUntil(() => false);
@@ -45,8 +60,6 @@ public static class Server
 
     private static void Tick()
     {
-        Task.Delay(1000 / TickRate).ContinueWith(_ => Tick());
-        
         OnTickCallback?.Invoke();
     }
     

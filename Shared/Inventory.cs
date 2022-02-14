@@ -65,14 +65,14 @@ public class Inventory
     {
         if (data is not PlayerDropItemData playerDropItemData) return;
 
-        TryDropItem(playerDropItemData.Id, playerDropItemData.Index);
+        TryDropItem(playerDropItemData.ClientId, playerDropItemData.Index);
     }
 
     public static void ServerHandlePlayerDropItem(Data data)
     {
         if (data is not PlayerDropItemData playerDropItemData) return;
         
-        TryDropItem(playerDropItemData.Id, playerDropItemData.Index);
+        TryDropItem(playerDropItemData.ClientId, playerDropItemData.Index);
         Server.SendMessageToAll(Message.MessageType.PlayerDropItem, playerDropItemData);
     }
 
@@ -80,15 +80,15 @@ public class Inventory
     {
         if (data is not UpdateItemData updateItemData) return;
         
-        Player.Players[updateItemData.PlayerId].Inventory.Items[updateItemData.Index].Update(updateItemData.PlayerId);
+        Player.Players[updateItemData.PlayerClientId].Inventory.Items[updateItemData.Index].Update(updateItemData.PlayerClientId);
     }
 
     public static void ServerHandleUpdateItem(Data data)
     {
         if (data is not UpdateItemData updateItemData) return;
         
-        Player.Players[updateItemData.PlayerId].Inventory.Items[updateItemData.Index].Update(updateItemData.PlayerId);
+        Player.Players[updateItemData.PlayerClientId].Inventory.Items[updateItemData.Index].Update(updateItemData.PlayerClientId);
         
-        Server.SendMessageToAllExcluding(updateItemData.PlayerId, Message.MessageType.UpdateItem, data);
+        Server.SendMessageToAllExcluding(updateItemData.PlayerClientId, Message.MessageType.UpdateItem, data);
     }
 }

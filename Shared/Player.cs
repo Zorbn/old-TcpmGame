@@ -7,7 +7,6 @@ public class Player : SyncedEntity
 {
     public static Dictionary<int, Player> Players = new();
 
-    public int Id;
     public float Speed;
     public int Size;
     public int Health;
@@ -16,10 +15,9 @@ public class Player : SyncedEntity
     
     public const float DefaultSpeed = 150f;
 
-    public Player(int id, float x, float y, int health = 100, int maxHealth = 100, float speed = DefaultSpeed, 
-        int size = 32, List<Item.ItemType>? itemTypes = null, Direction direction = Direction.Down) : base(x, y, direction)
+    public Player(int clientId, float x, float y, int health = 100, int maxHealth = 100, float speed = DefaultSpeed, 
+        int size = 32, List<Item.ItemType>? itemTypes = null, Direction direction = Direction.Down) : base(clientId, x, y, direction)
     {
-        Id = id;
         Speed = speed;
         Size = size;
         MaxHealth = maxHealth;
@@ -41,9 +39,18 @@ public class Player : SyncedEntity
         }
     }
 
-    public void Destroy()
+    public override void Destroy()
     {
-        Players.Remove(Id);
+        base.Destroy();
+        Players.Remove(ClientId);
+    }
+
+    public override void UpdateLocal(float moveX, float moveY, float frameTime)
+    {
+        base.UpdateLocal(moveX, moveY, frameTime);
+
+        Client.SendMessage(Message.MessageType.PlayerUpdateDirection,
+            new PlayerUpdateDirectionData(ClientId, (int)Direction));
     }
 
     public static void UpdateAllRemote(int localId, float frameTime)
@@ -60,20 +67,20 @@ public class Player : SyncedEntity
     public static void ServerHandlePlayerMove(Data data)
     {
         if (data is not PlayerMoveData playerMoveData) return;
-        if (!Players.ContainsKey(playerMoveData.Id)) return;
+        if (!Players.ContainsKey(playerMoveData.ClientId)) return;
 
-        Player targetPlayer = Players[playerMoveData.Id];
+        Player targetPlayer = Players[playerMoveData.ClientId];
         targetPlayer.X = playerMoveData.X;
         targetPlayer.Y = playerMoveData.Y;
 
-        Server.SendMessageToAllExcluding(playerMoveData.Id, Message.MessageType.PlayerMove, playerMoveData);
+        Server.SendMessageToAllExcluding(playerMoveData.ClientId, Message.MessageType.PlayerMove, playerMoveData);
     }
     
     public static void HandlePlayerMove(Data data)
     {
         if (data is not PlayerMoveData playerMoveData) return;
 
-        Player targetPlayer = Players[playerMoveData.Id];
+        Player targetPlayer = Players[playerMoveData.ClientId];
         targetPlayer.X = playerMoveData.X;
         targetPlayer.Y = playerMoveData.Y;
     }
@@ -82,8 +89,26 @@ public class Player : SyncedEntity
     {
         if (data is not PlayerDamageData playerDamageData) return;
 
-        Player targetPlayer = Players[playerDamageData.Id];
+        Player targetPlayer = Players[playerDamageData.ClientId];
         targetPlayer.Health -= playerDamageData.Damage;
         targetPlayer.FlashAmount = 1f;
+    }
+    
+    public static void ServerHandlePlayerUpdateDirection(Data data)
+    {
+        if (data is not PlayerUpdateDirectionData directionData) return;
+        if (!Players.ContainsKey(directionData.ClientId)) return;
+
+        Players[directionData.ClientId].Direction = (Direction)directionData.Direction;
+        Server.SendMessageToAllExcluding(directionData.ClientId, Message.MessageType.PlayerUpdateDirection,
+            directionData);
+    }
+    
+    public static void HandlePlayerUpdateDirection(Data data)
+    {
+        if (data is not PlayerUpdateDirectionData directionData) return;
+        if (!Players.ContainsKey(directionData.ClientId)) return;
+
+        Players[directionData.ClientId].Direction = (Direction)directionData.Direction;
     }
 }

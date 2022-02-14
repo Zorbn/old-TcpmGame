@@ -24,7 +24,8 @@ public class Enemy : SyncedEntity
     private static float AttackDelay = 0.5f;
     private float attackTimer;
 
-    public static Enemy NewEnemy(EnemyType type, float x, float y, int damage, int health = 100, int maxHealth = 100, float speed = DefaultSpeed, int size = 32)
+    public static Enemy NewEnemy(EnemyType type, float x, float y, int damage, int health = 100, int maxHealth = 100,
+        float speed = DefaultSpeed, int size = 32)
     {
         return type switch
         {
@@ -33,8 +34,9 @@ public class Enemy : SyncedEntity
         };
 
     }
-    
-    private Enemy(float x, float y, int damage, int health = 100, int maxHealth = 100, float speed = DefaultSpeed, int size = 20) : base(x, y)
+
+    private Enemy(float x, float y, int damage, int health = 100, int maxHealth = 100, float speed = DefaultSpeed,
+        int size = 20) : base(-1, x, y)
     {
         Type = EnemyType.Default;
         Speed = speed;
@@ -126,7 +128,7 @@ public class Enemy : SyncedEntity
         attackTimer = AttackDelay;
         targetPlayer.Health -= Damage;
 
-        Server.SendMessageToAll(Message.MessageType.PlayerDamage, new PlayerDamageData(targetPlayer.Id, Damage));
+        Server.SendMessageToAll(Message.MessageType.PlayerDamage, new PlayerDamageData(targetPlayer.ClientId, Damage));
     }
     
     public static void UpdateAllRemote(float frameTime)
@@ -187,7 +189,6 @@ public class Enemy : SyncedEntity
         if (!Enemies.ContainsKey(enemyDamageData.Id)) return;
         
         Enemy targetEnemy = Enemies[enemyDamageData.Id];
-        targetEnemy.FlashAmount = 1f;
         targetEnemy.TakeDamage(enemyDamageData.Damage);
     }
 
@@ -200,9 +201,32 @@ public class Enemy : SyncedEntity
             Destroy();
         }
     }
-    
-    public void Destroy()
+
+    public void DamageFx()
     {
+        FlashAmount = 1f;
+    }
+    
+    public override void Destroy()
+    {
+        base.Destroy();
+        
         Enemies.Remove(Id);
+    }
+
+    public override void UpdateLocal(float moveX, float moveY, float frameTime)
+    {
+        base.UpdateLocal(moveX, moveY, frameTime);
+
+        Server.SendMessageToAll(Message.MessageType.EnemyUpdateDirection,
+            new EnemyUpdateDirectionData(Id, (int)Direction));
+    }
+
+    public static void HandleEnemyUpdateDirection(Data data)
+    {
+        if (data is not EnemyUpdateDirectionData directionData) return;
+        if (!Enemies.ContainsKey(directionData.Id)) return;
+
+        Enemies[directionData.Id].Direction = (Direction)directionData.Direction;
     }
 }
