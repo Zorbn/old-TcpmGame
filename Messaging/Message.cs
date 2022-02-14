@@ -88,16 +88,20 @@ public class EnemySpawnData : Data
     [JsonInclude] public float X { get; }
     [JsonInclude] public float Y { get; }
     [JsonInclude] public int Type { get; }
+    [JsonInclude] public int Health { get; }
+    [JsonInclude] public int MaxHealth { get; }
     [JsonInclude] public int Damage { get; }
     [JsonInclude] public float Speed { get; }
     [JsonInclude] public int Size { get; }
 
-    public EnemySpawnData(int id, float x, float y, int type, int damage, float speed, int size)
+    public EnemySpawnData(int id, float x, float y, int type, int health, int maxHealth, int damage, float speed, int size)
     {
         Id = id;
         X = x;
         Y = y;
         Type = type;
+        Health = health;
+        MaxHealth = maxHealth;
         Damage = damage;
         Speed = speed;
         Size = size;
@@ -126,6 +130,19 @@ public class PlayerDamageData : Data
     [JsonInclude] public int Damage { get; }
 
     public PlayerDamageData(int id, int damage)
+    {
+        Id = id;
+        Damage = damage;
+    }
+}
+
+[Serializable]
+public class EnemyDamageData : Data
+{
+    [JsonInclude] public int Id { get; }
+    [JsonInclude] public int Damage { get; }
+
+    public EnemyDamageData(int id, int damage)
     {
         Id = id;
         Damage = damage;
@@ -163,8 +180,8 @@ public class UpdateDroppedItemsData : Data
 [Serializable]
 public class UpdateItemData : Data
 {
-    [JsonInclude] public int PlayerId;
-    [JsonInclude] public int Index;
+    [JsonInclude] public int PlayerId { get; }
+    [JsonInclude] public int Index { get; }
 
     public UpdateItemData(int playerId, int index)
     {
@@ -172,7 +189,7 @@ public class UpdateItemData : Data
         Index = index;
     }
 }
-    
+
 public class Message
 {
     public enum MessageType
@@ -187,7 +204,8 @@ public class Message
         PlayerDamage,
         PlayerDropItem,
         UpdateDroppedItems,
-        UpdateItem
+        UpdateItem,
+        EnemyDamage
     }
     
     public static Type ToDataType(MessageType messageType) => messageType switch
@@ -203,6 +221,7 @@ public class Message
         MessageType.PlayerDropItem => typeof(PlayerDropItemData),
         MessageType.UpdateDroppedItems => typeof(UpdateDroppedItemsData),
         MessageType.UpdateItem => typeof(UpdateItemData),
+        MessageType.EnemyDamage => typeof(EnemyDamageData),
         _ => throw new ArgumentOutOfRangeException($"No data type corresponds to {messageType}!")
     };
 

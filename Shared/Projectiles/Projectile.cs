@@ -26,10 +26,11 @@ public class Projectile
     public float OffsetY { get; }
     public float Speed { get; }
     public float Rotation { get; }
+    public int Damage { get; }
 
     protected List<Collider> ReturnColliders;
     
-    protected Projectile(int textureIndex, ProjectileType type, float x, float y, Vector2 direction, float speed, float rotation)
+    protected Projectile(int textureIndex, ProjectileType type, float x, float y, Vector2 direction, float speed, float rotation, int damage)
     {
         TextureIndex = textureIndex;
         Type = type;
@@ -38,6 +39,7 @@ public class Projectile
         Direction = direction;
         Speed = speed;
         Rotation = rotation;
+        Damage = damage;
         
         ReturnColliders = new List<Collider>();
 
@@ -45,10 +47,28 @@ public class Projectile
         OffsetY = 2 * OffsetRange * Random.NextSingle() - OffsetRange;
     }
 
-    public virtual void Update(float frameTime, Quadtree quadtree)
+    public virtual void Update(float frameTime, Quadtree quadtree, bool isServer)
     {
         X += Direction.X * Speed * frameTime;
         Y += Direction.Y * Speed * frameTime;
+        
+        ReturnColliders.Clear();
+        Collider projectileCollider = new(X, Y, Size, Size, this);
+        quadtree.Retrieve(ref ReturnColliders, projectileCollider);
+
+        foreach (Collider collider in ReturnColliders)
+        {
+            if (collider.CollidesWith(projectileCollider) && collider.Owner is Enemy enemy)
+            {
+                HitEnemy(enemy, isServer);
+                break;
+            }
+        }
+    }
+
+    public virtual void HitEnemy(Enemy enemy, bool isServer)
+    {
+        
     }
 
     public void Destroy()
@@ -56,11 +76,12 @@ public class Projectile
         Projectiles.Remove(this);
     }
 
-    public static void UpdateAll(float frameTime, Quadtree quadtree)
+    public static void UpdateAll(float frameTime, Quadtree quadtree, bool isServer)
     {
-        foreach (Projectile projectile in Projectiles.ToArray())
+        for (int index = 0; index < Projectiles.Count; index++)
         {
-            projectile.Update(frameTime, quadtree);
+            Projectile projectile = Projectiles[index];
+            projectile.Update(frameTime, quadtree, isServer);
         }
     }
 
@@ -71,7 +92,7 @@ public class Projectile
         Projectile newProjectile = type switch
         {
             ProjectileType.Dagger => new DaggerProjectile(x, y, normalizedDirection, rotation),
-            ProjectileType.Shield => new Projectile(1, type, x, y, normalizedDirection, 0f, rotation),
+            ProjectileType.Shield => new Projectile(1, type, x, y, normalizedDirection, 0f, rotation, 0),
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
 

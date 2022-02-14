@@ -41,6 +41,11 @@ public class Player : SyncedEntity
         }
     }
 
+    public void Destroy()
+    {
+        Players.Remove(Id);
+    }
+
     public static void UpdateAllRemote(int localId, float frameTime)
     {
         foreach ((int id, Player player) in Players)
@@ -60,10 +65,7 @@ public class Player : SyncedEntity
         Player targetPlayer = Players[playerMoveData.Id];
         targetPlayer.X = playerMoveData.X;
         targetPlayer.Y = playerMoveData.Y;
-        
-        targetPlayer.VisualX = playerMoveData.X;
-        targetPlayer.VisualY = playerMoveData.Y;
-        
+
         Server.SendMessageToAllExcluding(playerMoveData.Id, Message.MessageType.PlayerMove, playerMoveData);
     }
     

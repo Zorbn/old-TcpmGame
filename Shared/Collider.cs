@@ -4,17 +4,21 @@ public struct Collider
 {
     public float X, Y;
     public float Width, Height;
+    public object? Owner;
 
-    public Collider(float x, float y, float width, float height)
+    public Collider(float x, float y, float width, float height, object? owner)
     {
         X = x;
         Y = y;
         Width = width;
         Height = height;
+        Owner = owner;
     }
 
     public bool CollidesWith(Collider other)
     {
+        if (Owner != null && other.Owner != null && other.Owner == Owner) return false; // Don't collide with self
+        
         return X + Width >= other.X && X <= other.X + other.Width && Y + Height >= other.Y &&
                Y <= other.Y + other.Height;
     }

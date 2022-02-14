@@ -38,10 +38,10 @@ public class Quadtree
         int x = (int)bounds.X;
         int y = (int)bounds.Y;
 
-        nodes[0] = new Quadtree(level + 1, new Collider(x + subWidth, y, subWidth, subHeight));
-        nodes[1] = new Quadtree(level + 1, new Collider(x, y, subWidth, subHeight));
-        nodes[2] = new Quadtree(level + 1, new Collider(x, y + subHeight, subWidth, subHeight));
-        nodes[3] = new Quadtree(level + 1, new Collider(x + subWidth, y + subHeight, subWidth, subHeight));
+        nodes[0] = new Quadtree(level + 1, new Collider(x + subWidth, y, subWidth, subHeight, null));
+        nodes[1] = new Quadtree(level + 1, new Collider(x, y, subWidth, subHeight, null));
+        nodes[2] = new Quadtree(level + 1, new Collider(x, y + subHeight, subWidth, subHeight, null));
+        nodes[3] = new Quadtree(level + 1, new Collider(x + subWidth, y + subHeight, subWidth, subHeight, null));
     }
 
     private int GetIndex(Collider col)

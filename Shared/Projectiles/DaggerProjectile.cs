@@ -1,28 +1,23 @@
 ﻿using System.Numerics;
+using Messaging;
 
 namespace Shared.Projectiles;
 
 public class DaggerProjectile : Projectile
 {
-    public DaggerProjectile(float x, float y, Vector2 direction, float rotation) : base(0, ProjectileType.Dagger, x, y, direction, 400f, rotation)
+    public DaggerProjectile(float x, float y, Vector2 direction, float rotation) : 
+        base(0, ProjectileType.Dagger, x, y, direction, 400f, rotation, 10)
     {
     }
 
-    public override void Update(float frameTime, Quadtree quadtree)
+    public override void HitEnemy(Enemy enemy, bool isServer)
     {
-        base.Update(frameTime, quadtree);
-        
-        ReturnColliders.Clear();
-        Collider projectileCollider = new(X, Y, Size, Size);
-        quadtree.Retrieve(ref ReturnColliders, projectileCollider);
-
-        foreach (Collider collider in ReturnColliders)
+        if (isServer)
         {
-            if (collider.CollidesWith(projectileCollider))
-            {
-                Destroy();
-                break;
-            }
+            enemy.TakeDamage(Damage);
+            Server.SendMessageToAll(Message.MessageType.EnemyDamage, new EnemyDamageData(enemy.Id, Damage));
         }
+                
+        Destroy();
     }
 }

@@ -8,7 +8,7 @@ public class SyncedEntity
     public float VisualX, VisualY;
     public float FlashAmount;
     public Direction Direction;
-
+    
     public SyncedEntity(float x, float y, Direction direction = Direction.Down)
     {
         X = x;
@@ -33,7 +33,7 @@ public class SyncedEntity
     public void UpdateRemote(float frameTime)
     {
         UpdateDirection(X - VisualX, Y - VisualY);
-
+        
         VisualX = MathUtils.Lerp(VisualX, X, frameTime * 10f);
         VisualY = MathUtils.Lerp(VisualY, Y, frameTime * 10f);
 

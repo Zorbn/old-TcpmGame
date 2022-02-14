@@ -23,13 +23,14 @@ internal static class Program
         { Message.MessageType.EnemyMove, Enemy.HandleEnemyMove },
         { Message.MessageType.PlayerDropItem, Inventory.HandlePlayerDropItem },
         { Message.MessageType.UpdateDroppedItems, DroppedItem.HandleUpdateDroppedItems },
-        { Message.MessageType.UpdateItem, Inventory.HandleUpdateItem }
+        { Message.MessageType.UpdateItem, Inventory.HandleUpdateItem },
+        { Message.MessageType.EnemyDamage, Enemy.HandleEnemyDamage }
     };
 
     private static Camera2D Camera;
     
     private static List<Sprite> DrawList = new();
-    private static readonly Quadtree Quadtree = new(0, new Collider(0, 0, 640, 480));
+    private static readonly Quadtree Quadtree = new(0, new Collider(0, 0, 640, 480, null));
     
     private static Texture2D PlayerTexture;
     private static TextureAtlas? ItemAtlas;
@@ -87,10 +88,9 @@ internal static class Program
             Inventory.UpdateAllItemsLocal(localId, frameTime);
             InventoryGfx.UpdateInventory(localId, screenWidth, screenHeight, Camera.zoom);
         }
-        
+
         Enemy.UpdateAllRemote(frameTime);
         
-        // ToArray is used on these loops in case the original list is modified by a message while the loop is in progress
         foreach ((int id, Player player) in Player.Players.ToArray())
         {
             if (localId != -1 && id == localId)
@@ -129,33 +129,36 @@ internal static class Program
                 0f, player.FlashAmount));
         }
 
+        // Many of these lists may get modified during the update, so standard for or ToArray is used
         foreach ((int _, Enemy enemy) in Enemy.Enemies.ToArray())
         {
             DrawList.Add(new Sprite(PlayerTexture, new Rectangle(0f, 0f, 16f, 16f), new Rectangle(
                 (int)enemy.VisualX,
                 (int)enemy.VisualY,
                 enemy.Size, enemy.Size), enemy.VisualY, 0f, enemy.FlashAmount));
-            
+
             Quadtree.Insert(new Collider(enemy.X, enemy.Y, enemy.Size,
-                enemy.Size));
+                enemy.Size, enemy));
         }
 
-        foreach (DroppedItem droppedItem in DroppedItem.DroppedItems.ToArray())
+        for (int index = 0; index < DroppedItem.DroppedItems.Count; index++)
         {
+            DroppedItem droppedItem = DroppedItem.DroppedItems[index];
             DrawList.Add(new Sprite(ItemAtlas.Texture, ItemAtlas.GetTextureRect(droppedItem.Item.TextureIndex),
                 new Rectangle(droppedItem.X,
                     droppedItem.Y,
                     DroppedItem.Size, DroppedItem.Size), droppedItem.Y));
         }
 
-        foreach (Projectile projectile in Projectile.Projectiles.ToArray())
+        for (int index = 0; index < Projectile.Projectiles.Count; index++)
         {
+            Projectile projectile = Projectile.Projectiles[index];
             DrawList.Add(new Sprite(ProjectileAtlas.Texture, ProjectileAtlas.GetTextureRect(projectile.TextureIndex),
                 new Rectangle(projectile.X + projectile.OffsetX, projectile.Y + projectile.OffsetY, Projectile.Size,
                     Projectile.Size), projectile.Y, projectile.Rotation));
         }
-        
-        Projectile.UpdateAll(frameTime, Quadtree);
+
+        Projectile.UpdateAll(frameTime, Quadtree, false);
 
         Raylib.BeginDrawing();
         Raylib.ClearBackground(Color.BEIGE);
@@ -163,8 +166,7 @@ internal static class Program
         Raylib.BeginMode2D(Camera);
 
         DrawList.Sort((first, second) => first.YIndex.CompareTo(second.YIndex));
-        
-        
+
         foreach (Sprite sprite in DrawList)
         {
             SpriteShader.BeginSpriteShaderMode(sprite.Texture.width, sprite.Texture.height, sprite.FlashAmount);
@@ -175,7 +177,7 @@ internal static class Program
             
             Raylib.EndShaderMode();
         }
-        
+
         Raylib.EndMode2D();
         
         if (localId != -1)
@@ -227,7 +229,8 @@ internal static class Program
     private static void HandlePlayerDisconnect(Data data)
     {
         if (data is not PlayerDisconnectData playerDisconnectData) return;
-
-        Player.Players.Remove(playerDisconnectData.Id);
+        if (!Player.Players.ContainsKey(playerDisconnectData.Id)) return;
+        
+        Player.Players[playerDisconnectData.Id].Destroy();
     }
 }

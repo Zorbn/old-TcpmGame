@@ -65,7 +65,7 @@ public class Enemy : SyncedEntity
         
         Player targetPlayer = Player.Players[nearestPlayerId];
         Collider targetPlayerCollider =
-            new(targetPlayer.X, targetPlayer.Y, targetPlayer.Size, targetPlayer.Size);
+            new(targetPlayer.X, targetPlayer.Y, targetPlayer.Size, targetPlayer.Size, targetPlayer);
         quadtree.Insert(targetPlayerCollider);
         
         float moveX = targetPlayer.X - X;
@@ -82,17 +82,16 @@ public class Enemy : SyncedEntity
         
         float initialX = X;
         float initialY = Y;
-        Collider oldEnemyCollider = new(X, Y, Size, Size);
 
         UpdateLocal(moveX * Speed, 0, tickTime);
         
         returnColliders.Clear();
-        Collider enemyCollider = new(X, Y, Size, Size);
+        Collider enemyCollider = new(X, Y, Size, Size, this);
         quadtree.Retrieve(ref returnColliders, enemyCollider);
 
         foreach (Collider returnCollider in returnColliders)
         {
-            if (oldEnemyCollider.Equals(returnCollider) || !enemyCollider.CollidesWith(returnCollider)) continue;
+            if (!enemyCollider.CollidesWith(returnCollider)) continue;
             if (targetPlayerCollider.Equals(returnCollider)) hitTargetPlayer = true;
             
             X = initialX;
@@ -102,12 +101,12 @@ public class Enemy : SyncedEntity
         UpdateLocal(0, moveY * Speed, tickTime);
         
         returnColliders.Clear();
-        enemyCollider = new(X, Y, Size, Size);
+        enemyCollider = new(X, Y, Size, Size, this);
         quadtree.Retrieve(ref returnColliders, enemyCollider);
 
         foreach (Collider returnCollider in returnColliders)
         {
-            if (oldEnemyCollider.Equals(returnCollider) || !enemyCollider.CollidesWith(returnCollider)) continue;
+            if (!enemyCollider.CollidesWith(returnCollider)) continue;
             if (targetPlayerCollider.Equals(returnCollider)) hitTargetPlayer = true;
 
             Y = initialY;
@@ -155,7 +154,8 @@ public class Enemy : SyncedEntity
     {
         int newEnemyId = AddEnemy(enemy);
         Server.SendMessageToAll(Message.MessageType.EnemySpawn,
-            new EnemySpawnData(newEnemyId, enemy.X, enemy.Y, (int)enemy.Type, enemy.Damage, enemy.Speed, enemy.Size));
+            new EnemySpawnData(newEnemyId, enemy.X, enemy.Y, (int)enemy.Type, enemy.Health, enemy.MaxHealth,
+                enemy.Damage, enemy.Speed, enemy.Size));
     }
 
     public static void HandleEnemySpawn(Data data)
@@ -165,6 +165,8 @@ public class Enemy : SyncedEntity
         AddEnemyWithId(enemySpawnData.Id,
             NewEnemy((EnemyType)enemySpawnData.Type, enemySpawnData.X, enemySpawnData.Y,
                 enemySpawnData.Damage,
+                enemySpawnData.Health,
+                enemySpawnData.MaxHealth,
                 enemySpawnData.Speed,
                 enemySpawnData.Size));
     }
@@ -177,5 +179,30 @@ public class Enemy : SyncedEntity
         Enemy targetEnemy = Enemies[enemyMoveData.Id];
         targetEnemy.X = enemyMoveData.X;
         targetEnemy.Y = enemyMoveData.Y;
+    }
+
+    public static void HandleEnemyDamage(Data data)
+    {
+        if (data is not EnemyDamageData enemyDamageData) return;
+        if (!Enemies.ContainsKey(enemyDamageData.Id)) return;
+        
+        Enemy targetEnemy = Enemies[enemyDamageData.Id];
+        targetEnemy.FlashAmount = 1f;
+        targetEnemy.TakeDamage(enemyDamageData.Damage);
+    }
+
+    public void TakeDamage(int damage)
+    {
+        Health -= damage;
+
+        if (Health <= 0)
+        {
+            Destroy();
+        }
+    }
+    
+    public void Destroy()
+    {
+        Enemies.Remove(Id);
     }
 }

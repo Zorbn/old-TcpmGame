@@ -16,7 +16,9 @@ internal static class Program
     };
 
     private static readonly Random Rng = new();
-    private static readonly Quadtree Quadtree = new(0, new Collider(0, 0, 640, 480));
+    private static readonly Quadtree Quadtree = new(0, new Collider(0, 0, 640, 480, null));
+
+    private static bool spawnedEnemies;
 
     public static void Main()
     {
@@ -25,21 +27,33 @@ internal static class Program
     
     private static void OnTick()
     {
-        float tickTime = 1f / Messaging.Server.TickRate;        
+        float tickTime = 1f / Messaging.Server.TickRate;
+
+        Player.UpdateAllRemote(-1, tickTime);
         
+        /*
         if (Enemy.Enemies.Count < 3)
         {
             Enemy.ServerAddEnemy(Enemy.NewEnemy(Enemy.EnemyType.Default, Rng.Next(100, 300), Rng.Next(100, 300), 10));
         }
+        */
 
+        if (!spawnedEnemies)
+        {
+            spawnedEnemies = true;
+            Enemy.ServerAddEnemy(Enemy.NewEnemy(Enemy.EnemyType.Default, Rng.Next(100, 300), Rng.Next(100, 300), 10));
+            Enemy.ServerAddEnemy(Enemy.NewEnemy(Enemy.EnemyType.Default, Rng.Next(100, 300), Rng.Next(100, 300), 10));
+            Enemy.ServerAddEnemy(Enemy.NewEnemy(Enemy.EnemyType.Default, Rng.Next(100, 300), Rng.Next(100, 300), 10));
+        }
+        
         Quadtree.Clear();
 
         foreach ((int _, Enemy enemy) in Enemy.Enemies)
         {
-            Quadtree.Insert(new Collider(enemy.X, enemy.Y, enemy.Size, enemy.Size));
+            Quadtree.Insert(new Collider(enemy.X, enemy.Y, enemy.Size, enemy.Size, enemy));
         }
         
-        Projectile.UpdateAll(tickTime, Quadtree);
+        Projectile.UpdateAll(tickTime, Quadtree, true);
 
         List<Collider> returnColliders = new();
         foreach ((int id, Enemy enemy) in Enemy.Enemies)
@@ -71,7 +85,8 @@ internal static class Program
 
         foreach ((int enemyId, Enemy enemy) in Enemy.Enemies)
         {
-            EnemySpawnData enemySpawnData = new(enemyId, enemy.X, enemy.Y, (int)enemy.Type, enemy.Damage, enemy.Speed,
+            EnemySpawnData enemySpawnData = new(enemyId, enemy.X, enemy.Y, (int)enemy.Type, enemy.Health,
+                enemy.MaxHealth, enemy.Damage, enemy.Speed,
                 enemy.Size);
 
             Messaging.Server.SendMessage(id, Message.MessageType.EnemySpawn, enemySpawnData);
@@ -83,7 +98,7 @@ internal static class Program
 
     private static void OnDisconnect(int id)
     {
-        Player.Players.Remove(id);
+        Player.Players[id].Destroy();
         Messaging.Server.SendMessageToAll(Message.MessageType.PlayerDisconnect, new PlayerDisconnectData(id));
     }
 }

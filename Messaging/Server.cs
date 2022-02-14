@@ -36,7 +36,7 @@ public static class Server
         TcpListener.BeginAcceptTcpClient(TcpConnectCallback, null);
 
         Tick();
-
+        
         if (!integrated)
         {
             SpinWait.SpinUntil(() => false);
@@ -46,7 +46,7 @@ public static class Server
     private static void Tick()
     {
         Task.Delay(1000 / TickRate).ContinueWith(_ => Tick());
-
+        
         OnTickCallback?.Invoke();
     }
     
